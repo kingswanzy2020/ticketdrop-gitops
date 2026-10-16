@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: goaws
+  name: goaws
+  namespace: data
+spec:
+  ports:
+    - port: 4100
+      protocol: TCP
+      targetPort: 4100
+  selector:
+    app: goaws

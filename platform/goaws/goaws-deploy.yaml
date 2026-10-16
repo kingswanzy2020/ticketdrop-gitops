@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: goaws
+  name: goaws
+  namespace: data
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: goaws
+  template:
+    metadata:
+      labels:
+        app: goaws
+    spec:
+      containers:
+        - image: admiralpiett/goaws:v0.5.4
+          name: goaws
+          volumeMounts:
+            - name: goaws-data
+              mountPath: "/app/conf/goaws.yaml"
+              subPath: goaws.yaml
+          ports:
+            - containerPort: 4100
+          readinessProbe:
+            tcpSocket:
+              port: 4100
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: 4100
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 6
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+      volumes:
+        - name: goaws-data
+          configMap:
+            name: goaws
