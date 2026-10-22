@@ -1,0 +1,72 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: DatabaseRole
+metadata:
+  name: scheduler
+  namespace: data
+spec:
+  cluster:
+    name: pg
+  name: scheduler
+  login: true
+  superuser: false
+  passwordSecret:
+    name: pg-scheduler
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: DatabaseRole
+metadata:
+  name: fulfillment
+  namespace: data
+spec:
+  cluster:
+    name: pg
+  name: fulfillment
+  login: true
+  superuser: false
+  passwordSecret:
+    name: pg-fulfillment
+
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: DatabaseRole
+metadata:
+  name: orders
+  namespace: data
+spec:
+  cluster:
+    name: pg
+  name: orders
+  login: true
+  superuser: false
+  passwordSecret:
+    name: pg-orders
+
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: DatabaseRole
+metadata:
+  name: payments
+  namespace: data
+spec:
+  cluster:
+    name: pg
+  name: payments
+  login: true
+  superuser: false
+  passwordSecret:
+    name: pg-payments
+
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: DatabaseRole
+metadata:
+  name: inventory
+  namespace: data
+spec:
+  cluster:
+    name: pg
+  name: inventory
+  login: true
+  superuser: false
+  passwordSecret:
+    name: pg-inventory

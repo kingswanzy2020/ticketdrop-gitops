@@ -1,0 +1,55 @@
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: scheduler
+  namespace: data
+spec:
+  cluster:
+    name: pg
+  name: scheduler
+  owner: scheduler
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: fulfillment
+  namespace: data
+spec:
+  cluster:
+    name: pg
+  name: fulfillment
+  owner: fulfillment
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: orders
+  namespace: data
+spec:
+  cluster:
+    name: pg
+  name: orders
+  owner: orders
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: payments
+  namespace: data
+spec:
+  cluster:
+    name: pg
+  name: payments
+  owner: payments
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: inventory
+  namespace: data
+spec:
+  cluster:
+    name: pg
+  name: inventory
+  owner: inventory
