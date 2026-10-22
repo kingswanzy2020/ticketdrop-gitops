@@ -1,3 +1,4 @@
 # Generated credentials and Secret manifests; never commit them.
 secrets/
 *.env
+scratch/
