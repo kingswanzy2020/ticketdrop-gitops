@@ -1,0 +1,20 @@
+# orders: helm install orders charts/service -n ticketdrop -f charts/service/values/values-orders.yaml
+# Settings mirror deploy/local/compose.yaml, with in-cluster host names.
+
+# DATABASE_URL comes from this Secret (created by hand in ticketdrop).
+databaseSecret: orders-db
+
+env:
+  # Event bus: the goaws emulator in the data namespace.
+  AWS_ENDPOINT_URL: http://goaws.data.svc.cluster.local:4100
+  AWS_REGION: us-east-1
+  # Placeholders: the emulator accepts anything, the SDK insists on something.
+  AWS_ACCESS_KEY_ID: local
+  AWS_SECRET_ACCESS_KEY: local
+  EVENTS_TOPIC_ARN: arn:aws:sns:us-east-1:000000000000:ticketdrop-events
+  EVENTS_QUEUE_URL: http://goaws.data.svc.cluster.local:4100/000000000000/orders-events
+  CONSUMER_WAIT_TIME: 5s
+  # Below the queue's 10s visibility timeout; the code defaults to 20s.
+  CONSUMER_TIMEOUT: 5s
+  # Inventory is in the same namespace; not deployed yet.
+  INVENTORY_URL: http://inventory:8080

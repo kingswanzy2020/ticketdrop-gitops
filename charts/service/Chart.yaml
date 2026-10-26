@@ -1,0 +1,8 @@
+apiVersion: v2
+name: service
+version: 0.1.0
+description: >-
+  One chart for multiple microservices: with a main values.yaml,
+  and individual values-serviceName.yaml for each microservice.
+appVersion: "0.1.0"
+type: application

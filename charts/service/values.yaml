@@ -1,0 +1,41 @@
+# Defaults shared by every service. One release per service:
+#   helm install orders charts/service -n ticketdrop -f values-orders.yaml
+# A service's own values file overrides only what differs.
+
+replicaCount: 1
+
+image:
+  # Empty means ticketdrop/<release name>.
+  repository: ""
+  tag: dev
+  pullPolicy: IfNotPresent
+
+# Every service listens on the same two ports (HTTP_ADDR, ADMIN_ADDR).
+ports:
+  http: 8080
+  admin: 9090
+
+# Plain settings, rendered as env. The service's values file adds its own.
+env:
+  LOG_LEVEL: info
+
+# Name of the <service>-db Secret to load with envFrom. Empty: no database
+# (gateway, web, notifications).
+databaseSecret: ""
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+shutdown:
+  # SHUTDOWN_DELAY: time for endpoints to drop the pod before draining.
+  delay: 5s
+  # Must exceed delay + SHUTDOWN_TIMEOUT (25s default).
+  terminationGracePeriodSeconds: 40
+
+probes:
+  startup:
+    # 2s x 40 = 80s, covering the 60s wait for Postgres plus migrations.
+    periodSeconds: 2
+    failureThreshold: 40
