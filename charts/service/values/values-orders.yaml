@@ -18,3 +18,5 @@ env:
   CONSUMER_TIMEOUT: 5s
   # Inventory is in the same namespace; not deployed yet.
   INVENTORY_URL: http://inventory:8080
+
+replicaCount: 2

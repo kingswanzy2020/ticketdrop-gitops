@@ -4,13 +4,28 @@
 
 replicaCount: 1
 
+# Rendered only when replicaCount > 1. A whole number, not a percentage:
+# minAvailable or a rounded-up percentage on a small service blocks drains.
+pdb:
+  maxUnavailable: 1
+
+# Keep replicas apart. Locally: hostname, as a preference (one node, no zone
+# label). On EKS: topology.kubernetes.io/zone with DoNotSchedule. A zone key
+# on a node without that label leaves DoNotSchedule pods Pending.
+topologySpread:
+  maxSkew: 1
+  topologyKey: kubernetes.io/hostname
+  whenUnsatisfiable: ScheduleAnyway
+
 image:
   # Empty means ticketdrop/<release name>.
   repository: ""
   tag: dev
   pullPolicy: IfNotPresent
 
-# Every service listens on the same two ports (HTTP_ADDR, ADMIN_ADDR).
+# Every service listens on ADMIN_ADDR (9090); web, gateway, catalog, orders
+# and inventory also serve HTTP_ADDR (8080). A service with no app server sets
+# `http: null`, which removes the port from the pod and the Service.
 ports:
   http: 8080
   admin: 9090

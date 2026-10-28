@@ -1,0 +1,16 @@
+# catalog: helm install catalog charts/service -n ticketdrop -f charts/service/values/values-catalog.yaml
+# Settings mirror deploy/local/compose.yaml, with in-cluster host names.
+
+databaseSecret: catalog-db
+
+env:
+  # Catalog publishes drop.opened and consumes nothing, so it has no queue.
+  # Event bus: the goaws emulator in the data namespace.
+  AWS_ENDPOINT_URL: http://goaws.data.svc.cluster.local:4100
+  AWS_REGION: us-east-1
+  # Placeholders: the emulator accepts anything, the SDK insists on something.
+  AWS_ACCESS_KEY_ID: local
+  AWS_SECRET_ACCESS_KEY: local
+  EVENTS_TOPIC_ARN: arn:aws:sns:us-east-1:000000000000:ticketdrop-events
+
+replicaCount: 2

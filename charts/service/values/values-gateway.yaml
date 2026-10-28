@@ -1,0 +1,9 @@
+# gateway: helm install gateway charts/service -n ticketdrop -f charts/service/values/values-gateway.yaml
+# Settings mirror deploy/local/compose.yaml, with in-cluster host names.
+
+env:
+  CATALOG_URL: http://catalog:8080
+  ORDERS_URL: http://orders:8080
+  INVENTORY_URL: http://inventory:8080
+
+replicaCount: 2

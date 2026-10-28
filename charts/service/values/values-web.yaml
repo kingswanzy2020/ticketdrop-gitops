@@ -1,0 +1,8 @@
+# web: helm install web charts/service -n ticketdrop -f charts/service/values/values-web.yaml
+# Settings mirror deploy/local/compose.yaml, with in-cluster host names.
+
+env:
+  # The shopfront uses the public API, through the gateway, like any client.
+  API_URL: http://gateway:8080
+
+replicaCount: 2

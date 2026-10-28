@@ -16,6 +16,18 @@ spec:
     spec:
       # Must exceed SHUTDOWN_DELAY + SHUTDOWN_TIMEOUT, or the shutdown is cut off.
       terminationGracePeriodSeconds: {{ .Values.shutdown.terminationGracePeriodSeconds }}
+      {{- with .Values.topologySpread }}
+      topologySpreadConstraints:
+        - maxSkew: {{ .maxSkew }}
+          topologyKey: {{ .topologyKey }}
+          whenUnsatisfiable: {{ .whenUnsatisfiable }}
+          labelSelector:
+            matchLabels:
+              {{- include "service.selectorLabels" $ | nindent 14 }}
+          # Count only the new ReplicaSet's pods during a rolling update.
+          matchLabelKeys:
+            - pod-template-hash
+      {{- end }}
       securityContext:
         runAsNonRoot: true
         seccompProfile:
@@ -25,8 +37,10 @@ spec:
           image: {{ include "service.image" . | quote }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
+            {{- with .Values.ports.http }}
             - name: http
-              containerPort: {{ .Values.ports.http }}
+              containerPort: {{ . }}
+            {{- end }}
             - name: admin
               containerPort: {{ .Values.ports.admin }}
           env:

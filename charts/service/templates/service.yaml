@@ -9,10 +9,12 @@ spec:
   selector:
     {{- include "service.selectorLabels" . | nindent 4 }}
   ports:
+    {{- with .Values.ports.http }}
     - name: http
-      port: {{ .Values.ports.http }}
+      port: {{ . }}
       targetPort: http
       protocol: TCP
+    {{- end }}
     - name: admin
       port: {{ .Values.ports.admin }}
       targetPort: admin

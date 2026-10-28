@@ -1,0 +1,15 @@
+# scheduler: helm install scheduler charts/service -n ticketdrop -f charts/service/values/values-scheduler.yaml
+# Settings mirror deploy/local/compose.yaml, with in-cluster host names.
+
+# No app server: only the admin port (entry 38).
+ports:
+  http: null
+
+databaseSecret: scheduler-db
+
+env:
+  # A clock: it calls these two, which do the work. No event settings.
+  CATALOG_URL: http://catalog:8080
+  INVENTORY_URL: http://inventory:8080
+
+replicaCount: 2

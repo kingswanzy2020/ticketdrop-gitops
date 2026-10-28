@@ -1,0 +1,23 @@
+# inventory: helm install inventory charts/service -n ticketdrop -f charts/service/values/values-inventory.yaml
+# Settings mirror deploy/local/compose.yaml, with in-cluster host names.
+
+databaseSecret: inventory-db
+
+env:
+  # Event bus: the goaws emulator in the data namespace.
+  AWS_ENDPOINT_URL: http://goaws.data.svc.cluster.local:4100
+  AWS_REGION: us-east-1
+  # Placeholders: the emulator accepts anything, the SDK insists on something.
+  AWS_ACCESS_KEY_ID: local
+  AWS_SECRET_ACCESS_KEY: local
+  EVENTS_TOPIC_ARN: arn:aws:sns:us-east-1:000000000000:ticketdrop-events
+  EVENTS_QUEUE_URL: http://goaws.data.svc.cluster.local:4100/000000000000/inventory-events
+  CONSUMER_WAIT_TIME: 5s
+  # Below the queue's 10s visibility timeout; the code defaults to 20s.
+  CONSUMER_TIMEOUT: 5s
+  # How long tickets stay set aside with no payment outcome, and how long
+  # after that before they return to stock.
+  HOLD_TTL: 10m
+  HOLD_GRACE: 30s
+
+replicaCount: 2
