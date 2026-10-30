@@ -1,0 +1,108 @@
+# ============================================================
+# Traefik Helm Chart - Kubernetes Gateway Controller
+# Purpose: HTTP traffic gateway for Kubernetes workloads
+# ============================================================
+
+# ------------------------------------------------------------
+# Deployment configuration
+# ------------------------------------------------------------
+deployment:
+  enabled: true
+  kind: Deployment
+  replicas: 1
+
+# ------------------------------------------------------------
+# Traefik API and Dashboard
+# ------------------------------------------------------------
+api:
+  dashboard: true
+  insecure: false
+
+# ------------------------------------------------------------
+# Kubernetes Providers
+# ------------------------------------------------------------
+providers:
+  # Enable Kubernetes Gateway API
+  kubernetesGateway:
+    enabled: true
+    experimentalChannel: false
+    namespaces: []
+
+  # Disable traditional Kubernetes Ingress provider
+  kubernetesIngress:
+    enabled: false
+
+  # Disable Traefik CRD provider
+  kubernetesCRD:
+    enabled: false
+
+# ------------------------------------------------------------
+# Ingress
+# ------------------------------------------------------------
+ingressClass:
+  enabled: false
+
+# ------------------------------------------------------------
+# Gateway API Resources
+# ------------------------------------------------------------
+gatewayClass:
+  enabled: true
+  name: traefik
+
+gateway:
+  enabled: false
+
+# ------------------------------------------------------------
+# Network Entry Points
+# ------------------------------------------------------------
+ports:
+  traefik:
+    port: 8080
+    expose:
+      default: false
+
+  web:
+    port: 8000
+    # 8080 is taken on the host, and ports below 1024 cannot be bound by the user.
+    exposedPort: 8088
+    protocol: TCP
+    expose:
+      default: true
+
+  websecure:
+    port: 8443
+    exposedPort: 443
+    protocol: TCP
+    # No TLS locally.
+    expose:
+      default: false
+
+# ------------------------------------------------------------
+# Kubernetes Service
+# ------------------------------------------------------------
+service:
+  enabled: true
+  type: LoadBalancer
+  annotations: {}
+
+# ------------------------------------------------------------
+# Resource Management
+# ------------------------------------------------------------
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# ------------------------------------------------------------
+# Logging
+# ------------------------------------------------------------
+log:
+  level: INFO
+  format: json
+
+accessLog:
+  enabled: true
+  format: json

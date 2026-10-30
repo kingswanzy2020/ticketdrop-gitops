@@ -1,0 +1,20 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: ticketdrop
+  namespace: traefik
+spec:
+  gatewayClassName: traefik
+  listeners:
+    - name: http
+      # The web entrypoint inside the Traefik pod (ports.web.port), not the
+      # Service's public port (8088).
+      port: 8000
+      protocol: HTTP
+      # A Gateway admits routes only from its own namespace unless told otherwise.
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchLabels:
+              kubernetes.io/metadata.name: ticketdrop

@@ -21,3 +21,12 @@ metadata:
   # the label restricts the pods to have certain properties(non-root with UUID, and more) before they can be placed here
   labels:
     pod-security.kubernetes.io/enforce: restricted
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: traefik
+  # the label restricts the pods to have certain properties(non-root with UUID, and more) before they can be placed here
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
