@@ -13,3 +13,9 @@ env:
   INVENTORY_URL: http://inventory:8080
 
 replicaCount: 2
+
+# Who may call it and what it calls (entry 50).
+networkPolicy:
+  callers: []
+  calls: [catalog, inventory]
+  externalCalls: [postgres]

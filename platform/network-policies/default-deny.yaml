@@ -1,0 +1,13 @@
+# Every pod in ticketdrop starts with no traffic in or out. Each service's own
+# NetworkPolicy (charts/service) opens what it needs; dns.yaml opens DNS.
+# Apply after dns.yaml and the services' policies, then restart the services.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+  namespace: ticketdrop
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress

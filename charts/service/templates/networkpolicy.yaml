@@ -1,0 +1,76 @@
+{{- /*
+Who may call this service and what it may call. Default-deny and DNS cover the
+whole namespace, so they live in platform/network-policies/, not here.
+*/}}
+{{- $np := .Values.networkPolicy }}
+{{- if and (or $np.callers $np.externalCallers) (not .Values.ports.http) }}
+{{- fail "networkPolicy: callers are set but ports.http is null, so there is no port to admit them to" }}
+{{- end }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "service.name" . }}
+  labels:
+    {{- include "service.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "service.selectorLabels" . | nindent 6 }}
+  # Both directions, always: an empty list below admits nothing.
+  policyTypes:
+    - Ingress
+    - Egress
+  {{- if or $np.callers $np.externalCallers }}
+  ingress:
+    - from:
+        {{- range $np.callers }}
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: {{ . }}
+        {{- end }}
+        {{- range $np.externalCallers }}
+        {{- $peer := required (printf "networkPolicy.external.%s is not defined" .) (index $np.external .) }}
+        # One peer: the namespace AND the pods in it.
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ $peer.namespace }}
+          podSelector:
+            matchLabels:
+              {{- toYaml $peer.podLabels | nindent 14 }}
+        {{- end }}
+      ports:
+        - protocol: TCP
+          port: {{ .Values.ports.http }}
+  {{- else }}
+  ingress: []
+  {{- end }}
+  {{- if or $np.calls $np.externalCalls }}
+  egress:
+    {{- with $np.calls }}
+    - to:
+        {{- range . }}
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: {{ . }}
+        {{- end }}
+      ports:
+        - protocol: TCP
+          port: {{ $np.servicePort }}
+    {{- end }}
+    {{- /* One rule per destination, so each port applies to its own peer only. */}}
+    {{- range $np.externalCalls }}
+    {{- $peer := required (printf "networkPolicy.external.%s is not defined" .) (index $np.external .) }}
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ $peer.namespace }}
+          podSelector:
+            matchLabels:
+              {{- toYaml $peer.podLabels | nindent 14 }}
+      ports:
+        - protocol: TCP
+          port: {{ required (printf "networkPolicy.external.%s.port is needed to call it" .) $peer.port }}
+    {{- end }}
+  {{- else }}
+  egress: []
+  {{- end }}

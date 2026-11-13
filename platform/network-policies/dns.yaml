@@ -1,0 +1,26 @@
+# Every pod in ticketdrop may look up names, and only at CoreDNS. Every pod,
+# not just the services, so a pod that cannot reach something fails on the
+# connection and not on the lookup.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns
+  namespace: ticketdrop
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        # One peer: the namespace AND the pods in it.
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53

@@ -49,6 +49,39 @@ shutdown:
   # Must exceed delay + SHUTDOWN_TIMEOUT (25s default).
   terminationGracePeriodSeconds: 40
 
+# Who may call this service and what it calls, by name. Rendered as one
+# NetworkPolicy; default-deny and DNS are in platform/network-policies/.
+# The admin port (9090) is never opened: kubelet probes are always allowed.
+networkPolicy:
+  # Services in this namespace that may call this one's http port.
+  callers: []
+  # Pods in other namespaces that may call it, by key from `external`.
+  externalCallers: []
+  # Services in this namespace whose http port this one calls.
+  calls: []
+  # Destinations outside this namespace that it calls, by key from `external`.
+  externalCalls: []
+  # The http port of the services in `calls`; every service uses 8080.
+  servicePort: 8080
+  # Peers outside the namespace. A destination needs a port; a caller does not.
+  # On EKS these change with the environment (Postgres and the event bus).
+  external:
+    traefik:
+      namespace: traefik
+      podLabels:
+        app.kubernetes.io/name: traefik
+    postgres:
+      namespace: data
+      # The cluster label, not role=primary, so a failover keeps the rule.
+      podLabels:
+        cnpg.io/cluster: pg
+      port: 5432
+    goaws:
+      namespace: data
+      podLabels:
+        app: goaws
+      port: 4100
+
 probes:
   startup:
     # 2s x 40 = 80s, covering the 60s wait for Postgres plus migrations.

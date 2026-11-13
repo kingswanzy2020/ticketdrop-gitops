@@ -6,3 +6,9 @@ env:
   API_URL: http://gateway:8080
 
 replicaCount: 2
+
+# Who may call it and what it calls (entry 50).
+networkPolicy:
+  callers: []
+  externalCallers: [traefik]
+  calls: [gateway]

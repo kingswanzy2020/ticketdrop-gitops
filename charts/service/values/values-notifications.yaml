@@ -19,3 +19,9 @@ env:
   CONSUMER_WAIT_TIME: 5s
   # Below the queue's 10s visibility timeout; the code defaults to 20s.
   CONSUMER_TIMEOUT: 5s
+
+# Who may call it and what it calls (entry 50).
+networkPolicy:
+  callers: []
+  calls: []
+  externalCalls: [goaws]

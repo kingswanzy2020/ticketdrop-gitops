@@ -23,3 +23,9 @@ env:
   # orders leaves a backlog on the queue that can be watched draining.
   CONSUMER_CONCURRENCY: "4"
   SIMULATED_RENDER_TIME: 200ms
+
+# Who may call it and what it calls (entry 50).
+networkPolicy:
+  callers: []
+  calls: []
+  externalCalls: [postgres, goaws]

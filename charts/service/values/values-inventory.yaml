@@ -21,3 +21,9 @@ env:
   HOLD_GRACE: 30s
 
 replicaCount: 2
+
+# Who may call it and what it calls (entry 50).
+networkPolicy:
+  callers: [gateway, orders, scheduler]
+  calls: []
+  externalCalls: [postgres, goaws]

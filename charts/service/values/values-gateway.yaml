@@ -7,3 +7,9 @@ env:
   INVENTORY_URL: http://inventory:8080
 
 replicaCount: 2
+
+# Who may call it and what it calls (entry 50).
+networkPolicy:
+  callers: [web]
+  externalCallers: [traefik]
+  calls: [catalog, orders, inventory]

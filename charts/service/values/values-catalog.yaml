@@ -14,3 +14,9 @@ env:
   EVENTS_TOPIC_ARN: arn:aws:sns:us-east-1:000000000000:ticketdrop-events
 
 replicaCount: 2
+
+# Who may call it and what it calls (entry 50).
+networkPolicy:
+  callers: [gateway, scheduler]
+  calls: []
+  externalCalls: [postgres, goaws]
