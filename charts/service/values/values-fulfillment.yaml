@@ -29,3 +29,14 @@ networkPolicy:
   callers: []
   calls: []
   externalCalls: [postgres, goaws]
+
+# KEDA scales it on its queue's backlog, so the chart leaves replicas out.
+# replicaCount stays at the default 1, so it gets no PDB (entry 39).
+autoscaling:
+  enabled: true
+  sqs:
+    queueURL: http://goaws.data.svc.cluster.local:4100/000000000000/fulfillment-events
+    endpoint: http://goaws.data.svc.cluster.local:4100
+    # One pod does about 20 orders a second (4 handlers, 200ms each), so 100
+    # is about 5s of waiting work per pod.
+    queueLength: 100

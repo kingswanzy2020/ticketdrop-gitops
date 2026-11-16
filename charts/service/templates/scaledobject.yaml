@@ -1,0 +1,48 @@
+{{- /*
+Scales the service on its queue's backlog. KEDA moves it between 0 and 1 and
+creates an HPA for 1 to maxReplicaCount. The TriggerAuthentication of the
+same name says how the scaler signs its calls.
+*/}}
+{{- if .Values.autoscaling.enabled }}
+{{- $a := .Values.autoscaling }}
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ include "service.name" . }}
+  labels:
+    {{- include "service.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    name: {{ include "service.name" . }}
+  minReplicaCount: {{ $a.minReplicaCount }}
+  maxReplicaCount: {{ $a.maxReplicaCount }}
+  pollingInterval: {{ $a.pollingInterval }}
+  # Applies only from 1 to 0, after the trigger was last active.
+  cooldownPeriod: {{ $a.cooldownPeriod }}
+  {{- with $a.fallback }}
+  # After this many failed reads of the queue, run this many pods.
+  fallback:
+    failureThreshold: {{ .failureThreshold }}
+    replicas: {{ .replicas }}
+  {{- end }}
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleDown:
+          # From N towards 1; the HPA's default is 300s.
+          stabilizationWindowSeconds: {{ $a.scaleDownStabilizationSeconds }}
+  triggers:
+    - type: aws-sqs-queue
+      authenticationRef:
+        name: {{ include "service.name" . }}
+      # KEDA reads every value here as a string, so each is quoted.
+      metadata:
+        queueURL: {{ required "autoscaling.sqs.queueURL is needed to scale on a queue" $a.sqs.queueURL | quote }}
+        awsRegion: {{ required "autoscaling.sqs.region is needed" $a.sqs.region | quote }}
+        {{- with $a.sqs.endpoint }}
+        # Only for an emulator; on AWS the region decides the endpoint.
+        awsEndpoint: {{ . | quote }}
+        {{- end }}
+        queueLength: {{ $a.sqs.queueLength | quote }}
+        activationQueueLength: {{ $a.sqs.activationQueueLength | quote }}
+{{- end }}

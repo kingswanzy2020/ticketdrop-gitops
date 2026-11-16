@@ -87,3 +87,43 @@ probes:
     # 2s x 40 = 80s, covering the 60s wait for Postgres plus migrations.
     periodSeconds: 2
     failureThreshold: 40
+
+# true renders a ScaledObject and its TriggerAuthentication, and leaves
+# replicas out of the Deployment, so the HPA that KEDA creates owns the count
+# and an upgrade does not reset it. replicaCount is then not rendered, but
+# pdb.yaml still reads it: keep it at 1 and the service gets no budget.
+autoscaling:
+  enabled: false
+  # 0 when idle; KEDA starts the first pod when the queue has work.
+  minReplicaCount: 0
+  maxReplicaCount: 5
+  # Seconds between reads of the queue. On AWS each read is a paid request.
+  pollingInterval: 5
+  # Seconds after the queue was last busy before 1 goes to 0.
+  cooldownPeriod: 60
+  # Seconds the HPA waits before scaling N down towards 1.
+  scaleDownStabilizationSeconds: 30
+  fallback:
+    failureThreshold: 3
+    replicas: 1
+  sqs:
+    # The queue the service consumes, as plain text: read from the
+    # container's env, KEDA would also read its database Secret.
+    queueURL: ""
+    region: us-east-1
+    # Empty on AWS; set only for the goaws emulator.
+    endpoint: ""
+    # Messages per pod, visible plus in flight, before another is added.
+    queueLength: 5
+    # Above this many messages a pod is started from 0.
+    activationQueueLength: 0
+  # How KEDA's operator signs its calls to the queue (entry 54). Not the
+  # service's own credentials: on AWS the two are different roles.
+  auth:
+    # secret: a Secret <release>-keda-aws with the two keys below, for goaws,
+    #   which accepts anything but the scaler insists on something.
+    # aws: pod identity, an IAM role on EKS; no Secret is rendered.
+    provider: secret
+    # Placeholders only. A real credential never goes in values.
+    accessKeyID: local
+    secretAccessKey: local

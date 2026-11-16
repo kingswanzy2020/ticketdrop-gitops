@@ -5,7 +5,10 @@ metadata:
   labels:
     {{- include "service.labels" . | nindent 4 }}
 spec:
+  {{- /* With autoscaling the HPA owns the count; a value here would reset it on every upgrade. */}}
+  {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
+  {{- end }}
   selector:
     matchLabels:
       {{- include "service.selectorLabels" . | nindent 6 }}

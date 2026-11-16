@@ -1,0 +1,29 @@
+{{- /*
+How KEDA's operator authenticates when it reads this service's queue depth.
+It must sit in the ScaledObject's namespace (entry 54).
+*/}}
+{{- if .Values.autoscaling.enabled }}
+{{- $provider := .Values.autoscaling.auth.provider }}
+{{- if not (has $provider (list "secret" "aws")) }}
+{{- fail (printf "autoscaling.auth.provider is %q; use secret or aws" $provider) }}
+{{- end }}
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: {{ include "service.name" . }}
+  labels:
+    {{- include "service.labels" . | nindent 4 }}
+spec:
+  {{- if eq $provider "aws" }}
+  podIdentity:
+    provider: aws
+  {{- else }}
+  secretTargetRef:
+    - parameter: awsAccessKeyID
+      name: {{ include "service.name" . }}-keda-aws
+      key: AWS_ACCESS_KEY_ID
+    - parameter: awsSecretAccessKey
+      name: {{ include "service.name" . }}-keda-aws
+      key: AWS_SECRET_ACCESS_KEY
+  {{- end }}
+{{- end }}

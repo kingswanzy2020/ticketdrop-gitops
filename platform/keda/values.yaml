@@ -1,0 +1,86 @@
+# KEDA Helm Chart 2.21.0
+#
+# Installation namespace: keda
+# Application namespace: ticketdrop
+#
+# Target environment: Local Kubernetes cluster
+# Configuration: Single-replica deployment with modest resource allocation.
+
+# ---------------------------------------------------------
+# CRDs (Custom Resource Definitions)
+# ---------------------------------------------------------
+# Installs KEDA custom resources into the Kubernetes cluster.
+# These CRDs allow you to create resources such as:
+# - ScaledObject
+# - ScaledJob
+# - TriggerAuthentication
+# - ClusterTriggerAuthentication
+crds:
+  install: true
+
+# ---------------------------------------------------------
+# Namespace configuration
+# ---------------------------------------------------------
+# Restricts the KEDA operator to watching the specified
+# application namespace instead of watching all namespaces.
+#
+# Important: This does NOT change the namespace where
+# KEDA itself is installed. KEDA remains in the "keda" namespace.
+watchNamespace: ticketdrop
+
+# ---------------------------------------------------------
+# KEDA Operator
+# ---------------------------------------------------------
+# The main KEDA component responsible for:
+# - Monitoring ScaledObjects and ScaledJobs.
+# - Communicating with external event sources.
+# - Managing workload scaling.
+operator:
+  replicaCount: 1
+
+# ---------------------------------------------------------
+# KEDA Metrics Server
+# ---------------------------------------------------------
+# Exposes external metrics to Kubernetes through the
+# Kubernetes External Metrics API.
+#
+# Kubernetes HPA uses these metrics to scale workloads.
+metricsServer:
+  enabled: true
+  replicaCount: 1
+
+# ---------------------------------------------------------
+# Resource requests and limits
+# ---------------------------------------------------------
+# Requests define the minimum resources Kubernetes reserves.
+# Limits define the maximum resources containers can consume.
+#
+# These values are intentionally modest for a local cluster.
+resources:
+  # Main KEDA operator
+  operator:
+    requests:
+      cpu: 100m
+      memory: 100Mi
+
+  # KEDA Metrics API Server
+  metricServer:
+    requests:
+      cpu: 100m
+      memory: 100Mi
+
+  # KEDA Admission Webhooks
+  webhooks:
+    requests:
+      cpu: 100m
+      memory: 100Mi
+
+# ---------------------------------------------------------
+# Network Policy
+# ---------------------------------------------------------
+# Disables KEDA network policy creation.
+#
+# Useful for local development environments where you
+# are not explicitly managing pod-to-pod network traffic.
+networkPolicy:
+  enabled: false
