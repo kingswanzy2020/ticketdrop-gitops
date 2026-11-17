@@ -11,6 +11,9 @@ env:
   # A clock: it calls these two, which do the work. No event settings.
   CATALOG_URL: http://catalog:8080
   INVENTORY_URL: http://inventory:8080
+  # Pool size: this pod's share of the one shared Postgres (DECISIONS 57).
+  # Per pod, plus the leader-lock connection it takes out of the pool.
+  DATABASE_MAX_CONNS: "2"
 
 replicaCount: 2
 

@@ -18,6 +18,8 @@ env:
   CONSUMER_TIMEOUT: 5s
   # Inventory is in the same namespace; not deployed yet.
   INVENTORY_URL: http://inventory:8080
+  # Pool size: this pod's share of the one shared Postgres (DECISIONS 57).
+  DATABASE_MAX_CONNS: "10"
 
 replicaCount: 2
 

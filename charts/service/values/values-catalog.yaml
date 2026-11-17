@@ -12,6 +12,8 @@ env:
   AWS_ACCESS_KEY_ID: local
   AWS_SECRET_ACCESS_KEY: local
   EVENTS_TOPIC_ARN: arn:aws:sns:us-east-1:000000000000:ticketdrop-events
+  # Pool size: this pod's share of the one shared Postgres (DECISIONS 57).
+  DATABASE_MAX_CONNS: "8"
 
 replicaCount: 2
 

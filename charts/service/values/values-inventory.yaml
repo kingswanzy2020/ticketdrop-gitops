@@ -19,6 +19,8 @@ env:
   # after that before they return to stock.
   HOLD_TTL: 10m
   HOLD_GRACE: 30s
+  # Pool size: this pod's share of the one shared Postgres (DECISIONS 57).
+  DATABASE_MAX_CONNS: "8"
 
 replicaCount: 2
 

@@ -24,6 +24,8 @@ env:
   PAYMENT_LATENCY: 100ms
   PAYMENT_DECLINE_RATE: "0.1"
   PAYMENT_ERROR_RATE: "0"
+  # Pool size: this pod's share of the one shared Postgres (DECISIONS 57).
+  DATABASE_MAX_CONNS: "5"
 
 # Who may call it and what it calls (entry 50).
 networkPolicy:

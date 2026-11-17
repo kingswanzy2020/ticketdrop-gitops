@@ -23,6 +23,9 @@ env:
   # orders leaves a backlog on the queue that can be watched draining.
   CONSUMER_CONCURRENCY: "4"
   SIMULATED_RENDER_TIME: 200ms
+  # Pool size: this pod's share of the one shared Postgres (DECISIONS 57).
+  # Per pod, and KEDA may run up to 5 pods.
+  DATABASE_MAX_CONNS: "4"
 
 # Who may call it and what it calls (entry 50).
 networkPolicy:
