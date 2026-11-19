@@ -1,0 +1,189 @@
+name: ci
+
+# No paths filter: ci-ok is required, and a required check that never starts
+# stays "Expected" and blocks the merge.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# The token can read this repository and nothing else. No job here holds a
+# cloud or cluster credential: the cluster in the kind job lives and dies in
+# the runner.
+permissions:
+  contents: read
+
+# A new push to a PR cancels the run it replaces. Anything else is grouped by
+# its commit, so two pushes to main never cancel each other.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # Seconds, no cluster: the chart and every manifest against the schemas of
+  # Kubernetes 1.36.4 and of the CRDs, plus the scripts the kind job runs.
+  lint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: tools
+        run: .github/scripts/install-tools.sh helm kubeconform shellcheck
+      - name: shellcheck
+        # -x follows `source lib.sh`, so lib.sh is checked with its callers.
+        run: shellcheck -x -P SCRIPTDIR scripts/*.sh .github/scripts/*.sh
+      - name: helm repos
+        run: |
+          helm repo add cnpg https://cloudnative-pg.github.io/charts
+          helm repo add kedacore https://kedacore.github.io/charts
+          helm repo add traefik https://traefik.github.io/charts
+      - name: helm lint and kubeconform
+        run: scripts/validate.sh
+
+  # The whole stack from nothing, with the scripts used at home: a kind
+  # cluster, the nine images built from the app repo's main, rebuild.sh, and
+  # the check.sh it ends with.
+  kind:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      KUBE_CONTEXT: kind-ticketdrop
+      # The Kubernetes version of the Docker Desktop cluster, by digest, from
+      # kind v0.33.0's release notes.
+      KIND_NODE: kindest/node:v1.36.4@sha256:099e049362a1526b2db71494e1947aae99bd16290d7c895f2b7ea312e3cbfaed
+      # Gives a LoadBalancer Service an address, as Docker Desktop does. Without
+      # it Traefik's Service stays <pending> and helm --wait never returns.
+      CLOUD_PROVIDER_KIND: registry.k8s.io/cloud-provider-kind/cloud-controller-manager:v0.12.0@sha256:1b97632e5dfec8f83c7e970cf18cedb9e6b707e272011d712cabf6ab59d323c9
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # The app repo is public, so this repo's read-only token can fetch it.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: kingswanzy2020/ticketdrop
+          ref: main
+          path: app
+          persist-credentials: false
+      - name: tools
+        run: .github/scripts/install-tools.sh helm kubectl kind
+
+      - name: build the nine images from the app repo
+        run: |
+          version=$(git -C app rev-parse --short HEAD)
+          echo "app repo main at $version" >> "$GITHUB_STEP_SUMMARY"
+          # One builder for all nine, so go mod download runs once and the
+          # other eight reuse that layer.
+          for s in catalog inventory orders payments fulfillment notifications scheduler gateway web; do
+            docker build -q -f "app/services/$s/Dockerfile" --build-arg "VERSION=$version" -t "ticketdrop/$s:dev" app
+          done
+          docker images 'ticketdrop/*'
+
+      - name: kind cluster
+        run: |
+          kind create cluster --name ticketdrop --image "$KIND_NODE" --wait 120s
+          docker run -d --name cloud-provider-kind --network kind \
+            -v /var/run/docker.sock:/var/run/docker.sock "$CLOUD_PROVIDER_KIND"
+          images=()
+          for s in catalog inventory orders payments fulfillment notifications scheduler gateway web; do
+            images+=("ticketdrop/$s:dev")
+          done
+          kind load docker-image --name ticketdrop "${images[@]}"
+          kubectl get nodes -o wide
+
+      - name: helm repos
+        run: |
+          helm repo add cnpg https://cloudnative-pg.github.io/charts
+          helm repo add kedacore https://kedacore.github.io/charts
+          helm repo add traefik https://traefik.github.io/charts
+
+      # check.sh calls localhost:8088, which on Docker Desktop reaches Traefik's
+      # LoadBalancer. Here the LoadBalancer's address is on kind's Docker
+      # network, so a port-forward gives localhost:8088 the same meaning and the
+      # scripts run unchanged. It waits for Traefik, and starts again if its pod
+      # goes away.
+      - name: localhost:8088 to Traefik
+        run: |
+          nohup bash -c '
+            until kubectl -n traefik rollout status deploy/traefik --timeout=10s >/dev/null 2>&1; do sleep 5; done
+            while true; do kubectl -n traefik port-forward svc/traefik 8088:8088; sleep 2; done
+          ' > "$RUNNER_TEMP/port-forward.log" 2>&1 &
+
+      - name: rebuild.sh, ending with check.sh
+        run: scripts/rebuild.sh
+
+      # kindnet enforces NetworkPolicy on Docker Desktop (DECISIONS 49). This
+      # checks the same holds here: a pod in ticketdrop, where default-deny
+      # applies, must not reach goaws, while the same pod in default can.
+      - name: NetworkPolicy is enforced
+        run: |
+          # Prints reached, blocked, or the error when it is neither (a DNS
+          # failure must not pass for a block).
+          probe() { # namespace
+            kubectl apply -n "$1" -f - >/dev/null <<'EOF'
+          apiVersion: v1
+          kind: Pod
+          metadata:
+            name: np-probe
+          spec:
+            restartPolicy: Never
+            securityContext:
+              runAsNonRoot: true
+              runAsUser: 65534
+              seccompProfile:
+                type: RuntimeDefault
+            containers:
+              - name: np-probe
+                image: busybox:1.37.0
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop: ["ALL"]
+                command:
+                  - sh
+                  - -c
+                  - |
+                    out=$(wget -q -T 3 -O /dev/null http://goaws.data:4100/ 2>&1)
+                    case $out in
+                      "" | *"server returned"*) echo reached ;;
+                      *"timed out"*) echo blocked ;;
+                      *) echo "error: $out" ;;
+                    esac
+          EOF
+            kubectl wait -n "$1" pod/np-probe --for=jsonpath='{.status.phase}'=Succeeded --timeout=90s >/dev/null
+            kubectl logs -n "$1" np-probe
+            kubectl delete pod -n "$1" np-probe --wait=false >/dev/null
+          }
+          from_default=$(probe default)
+          from_ticketdrop=$(probe ticketdrop)
+          echo "from default: $from_default; from ticketdrop: $from_ticketdrop"
+          [ "$from_default" = reached ] && [ "$from_ticketdrop" = blocked ]
+
+      - name: on failure, what was running
+        if: failure()
+        run: |
+          kubectl get pods -A -o wide || true
+          kubectl get events -A --sort-by=.lastTimestamp | tail -60 || true
+          for p in $(kubectl get pods -n ticketdrop -o name 2>/dev/null); do
+            echo "== $p"; kubectl logs -n ticketdrop "$p" --all-containers --tail=30 || true
+          done
+          cat "$RUNNER_TEMP/port-forward.log" || true
+
+  # The one check the ruleset requires. It always runs, and passes only when
+  # both jobs passed. Without `if: always()` it would be skipped when a job it
+  # needs fails, and a skipped required check counts as passing.
+  ci-ok:
+    needs: [lint, kind]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          jq -r 'to_entries[] | "\(.key): \(.value.result)"' <<<"$NEEDS"
+          jq -e 'all(.[]; .result == "success")' <<<"$NEEDS" >/dev/null \
+            || { echo "::error::a required job did not pass"; exit 1; }
