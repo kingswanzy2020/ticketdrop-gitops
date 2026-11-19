@@ -123,6 +123,8 @@ jobs:
       # kindnet enforces NetworkPolicy on Docker Desktop (DECISIONS 49). This
       # checks the same holds here: a pod in ticketdrop, where default-deny
       # applies, must not reach goaws, while the same pod in default can.
+      # Each probe waits 5 s first: a pod is not policed for its first
+      # moments, before the engine has its IP (TROUBLESHOOTING 18).
       - name: NetworkPolicy is enforced
         run: |
           # Prints reached, blocked, or the error when it is neither (a DNS
@@ -151,6 +153,7 @@ jobs:
                   - sh
                   - -c
                   - |
+                    sleep 5
                     out=$(wget -q -T 3 -O /dev/null http://goaws.data:4100/ 2>&1)
                     case $out in
                       "" | *"server returned"*) echo reached ;;
