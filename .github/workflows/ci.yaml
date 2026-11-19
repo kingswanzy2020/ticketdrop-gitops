@@ -33,8 +33,10 @@ jobs:
       - name: tools
         run: .github/scripts/install-tools.sh helm kubeconform shellcheck
       - name: shellcheck
-        # -x follows `source lib.sh`, so lib.sh is checked with its callers.
-        run: shellcheck -x -P SCRIPTDIR scripts/*.sh .github/scripts/*.sh
+        # The scripts that are run, not lib.sh on its own: alone it has no
+        # shebang and its variables look unused. -x follows `source lib.sh`,
+        # so it is checked as part of each script that uses it.
+        run: find scripts .github/scripts -name '*.sh' ! -name lib.sh -exec shellcheck -x -P SCRIPTDIR {} +
       - name: helm repos
         run: |
           helm repo add cnpg https://cloudnative-pg.github.io/charts
@@ -55,7 +57,9 @@ jobs:
       # kind v0.33.0's release notes.
       KIND_NODE: kindest/node:v1.36.4@sha256:099e049362a1526b2db71494e1947aae99bd16290d7c895f2b7ea312e3cbfaed
       # Gives a LoadBalancer Service an address, as Docker Desktop does. Without
-      # it Traefik's Service stays <pending> and helm --wait never returns.
+      # it Traefik's Service stays <pending> and helm --wait never returns. It
+      # is started with its own Gateway API controller off: on, it installs the
+      # Gateway API CRDs itself, and rebuild.sh's apply of ours then conflicts.
       CLOUD_PROVIDER_KIND: registry.k8s.io/cloud-provider-kind/cloud-controller-manager:v0.12.0@sha256:1b97632e5dfec8f83c7e970cf18cedb9e6b707e272011d712cabf6ab59d323c9
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -86,7 +90,8 @@ jobs:
         run: |
           kind create cluster --name ticketdrop --image "$KIND_NODE" --wait 120s
           docker run -d --name cloud-provider-kind --network kind \
-            -v /var/run/docker.sock:/var/run/docker.sock "$CLOUD_PROVIDER_KIND"
+            -v /var/run/docker.sock:/var/run/docker.sock "$CLOUD_PROVIDER_KIND" \
+            --gateway-channel disabled
           images=()
           for s in catalog inventory orders payments fulfillment notifications scheduler gateway web; do
             images+=("ticketdrop/$s:dev")
